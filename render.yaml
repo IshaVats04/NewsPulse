@@ -1,9 +1,9 @@
 services:
   - type: web
     name: news-pulse-api
-    env: node
-    rootDirectory: backend
-    buildCommand: npm install && pip install -r ../scraper/requirements.txt
+    runtime: node
+    plan: free
+    buildCommand: npm install
     startCommand: node server.js
     envVars:
       - key: DATABASE_URL
@@ -11,7 +11,7 @@ services:
           name: news-pulse-db
           property: connectionString
       - key: PORT
-        value: 10000
+        value: "10000"
       - key: PYTHON_PATH
         value: python
 
@@ -19,3 +19,4 @@ databases:
   - name: news-pulse-db
     databaseName: newspulse
     user: newspulse
+    plan: free
