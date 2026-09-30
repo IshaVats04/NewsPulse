@@ -1,6 +1,4 @@
 const { Pool } = require('pg');
-const sqlite3 = require('sqlite3');
-const { open } = require('sqlite');
 const path = require('path');
 const dotenv = require('dotenv');
 
@@ -21,12 +19,14 @@ async function getDb() {
       }
       pgPool = new Pool({
         connectionString,
-        ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+        ssl: { rejectUnauthorized: false }
       });
     }
     return { isPostgres: true, pool: pgPool };
   } else {
     if (!sqliteDb) {
+      const sqlite3 = require('sqlite3');
+      const { open } = require('sqlite');
       let rawPath = dbUrl.replace('sqlite:///', '').replace('sqlite://', '');
       if (!path.isAbsolute(rawPath)) {
         rawPath = path.resolve(__dirname, rawPath);

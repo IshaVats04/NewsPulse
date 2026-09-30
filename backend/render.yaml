@@ -13,7 +13,7 @@ services:
       - key: PORT
         value: "10000"
       - key: PYTHON_PATH
-        value: python
+        value: python3
 
 databases:
   - name: news-pulse-db
