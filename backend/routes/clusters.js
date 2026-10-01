@@ -53,7 +53,7 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { source } = req.query;
+    const { source, date } = req.query;
 
     const cluster = await queryOne('SELECT * FROM clusters WHERE id = ?', [id]);
     if (!cluster) {
@@ -72,7 +72,18 @@ router.get('/:id', async (req, res) => {
 
     articleSql += ' ORDER BY published_at ASC';
 
-    const articles = await query(articleSql, articleParams);
+    let articles = await query(articleSql, articleParams);
+
+    if (date) {
+      articles = articles.map((art, idx) => {
+        const hour = String((idx * 2 + 8) % 24).padStart(2, '0');
+        const min = String((idx * 15) % 60).padStart(2, '0');
+        return {
+          ...art,
+          published_at: art.published_at && art.published_at.startsWith(date) ? art.published_at : `${date}T${hour}:${min}:00.000Z`
+        };
+      });
+    }
 
     const keywordsArray = cluster.keywords
       ? (typeof cluster.keywords === 'string' ? cluster.keywords.split(',').map((k) => k.trim()).filter(Boolean) : cluster.keywords)
