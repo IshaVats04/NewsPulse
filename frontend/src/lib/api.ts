@@ -1,4 +1,7 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://news-pulse-api-bhi6.onrender.com' : 'http://localhost:5000');
+const rawBaseUrl = (import.meta.env.VITE_API_URL as string) || (import.meta.env.PROD ? 'https://news-pulse-api-bhi6.onrender.com' : 'http://localhost:5000');
+
+// Strip trailing slashes to guarantee clean URL concatenation without double slashes (//)
+const API_URL = rawBaseUrl.trim().replace(/\/+$/, '');
 
 export interface Article {
   id: string;
@@ -106,7 +109,7 @@ function normalizeCluster(c: any): Cluster {
 }
 
 export async function fetchTimeline(selectedSources: string[] = [], selectedDate: string = ''): Promise<Cluster[]> {
-  const url = new URL(`${API_BASE_URL}/timeline`);
+  const url = new URL(`${API_URL}/timeline`);
   if (selectedSources.length > 0) {
     url.searchParams.append('source', selectedSources.join(','));
   }
@@ -129,7 +132,7 @@ export async function fetchTimeline(selectedSources: string[] = [], selectedDate
 }
 
 export async function fetchClusterDetail(clusterId: string, selectedSources: string[] = [], selectedDate: string = ''): Promise<Cluster | null> {
-  const url = new URL(`${API_BASE_URL}/clusters/${clusterId}`);
+  const url = new URL(`${API_URL}/clusters/${clusterId}`);
   if (selectedSources.length > 0) {
     url.searchParams.append('source', selectedSources.join(','));
   }
@@ -143,11 +146,14 @@ export async function fetchClusterDetail(clusterId: string, selectedSources: str
 }
 
 export async function fetchSources(): Promise<string[]> {
-  const data = await safeFetchJson(`${API_BASE_URL}/ingest/sources`);
-  if (!data) return ['BBC News', 'NPR News', 'Al Jazeera', 'The Guardian', 'CNN Top Stories'];
-  if (data.success && Array.isArray(data.data)) return data.data;
-  if (Array.isArray(data)) return data;
-  return ['BBC News', 'NPR News', 'Al Jazeera', 'The Guardian', 'CNN Top Stories'];
+  const data = await safeFetchJson(`${API_URL}/ingest/sources`);
+  const defaultSources = ['Al Jazeera', 'BBC News', 'CNN Top Stories', 'NPR News', 'The Guardian'];
+  if (!data) return defaultSources;
+  if (data.success && Array.isArray(data.data)) {
+    return data.data.length > 0 ? data.data : defaultSources;
+  }
+  if (Array.isArray(data) && data.length > 0) return data;
+  return defaultSources;
 }
 
 export async function triggerIngestion(selectedDate?: string): Promise<{ jobId: string; status: string } | null> {
@@ -158,7 +164,7 @@ export async function triggerIngestion(selectedDate?: string): Promise<{ jobId: 
   if (selectedDate) {
     options.body = JSON.stringify({ date: selectedDate });
   }
-  const data = await safeFetchJson(`${API_BASE_URL}/ingest/trigger`, options);
+  const data = await safeFetchJson(`${API_URL}/ingest/trigger`, options);
   if (!data) return null;
   if (data.success && data.jobId) {
     return { jobId: data.jobId, status: data.status || 'running' };
@@ -170,7 +176,7 @@ export async function triggerIngestion(selectedDate?: string): Promise<{ jobId: 
 }
 
 export async function fetchIngestStatus(jobId: string): Promise<IngestionJob | null> {
-  const data = await safeFetchJson(`${API_BASE_URL}/ingest/status/${jobId}`);
+  const data = await safeFetchJson(`${API_URL}/ingest/status/${jobId}`);
   if (!data) return null;
   const rawObj = data.success ? data.data : data;
   if (!rawObj) return null;
@@ -184,4 +190,8 @@ export async function fetchIngestStatus(jobId: string): Promise<IngestionJob | n
     error_message: rawObj.error_message,
     logs: Array.isArray(rawObj.logs) ? rawObj.logs : (typeof rawObj.logs === 'string' ? rawObj.logs.split('\n') : [])
   };
+}
+
+export async function fetchDebugDate(date: string): Promise<any> {
+  return await safeFetchJson(`${API_URL}/ingest/debug/${date}`);
 }

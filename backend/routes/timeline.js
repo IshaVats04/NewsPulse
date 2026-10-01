@@ -1,6 +1,38 @@
 const express = require('express');
+const { spawn } = require('child_process');
+const path = require('path');
 const router = express.Router();
 const { query } = require('../db');
+
+let autoIngestTriggered = false;
+
+function triggerAutoIngest() {
+  if (autoIngestTriggered) return;
+  autoIngestTriggered = true;
+
+  try {
+    const pythonExecutable = process.env.PYTHON_PATH || (process.platform === 'win32' ? 'python' : 'python3');
+    const scraperScriptPath = path.resolve(__dirname, '../../scraper/main.py');
+    console.log(`Auto-triggering initial ingestion pipeline with ${pythonExecutable}...`);
+
+    const pyProcess = spawn(pythonExecutable, [scraperScriptPath, `init_job_${Date.now()}`], {
+      detached: true,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      windowsHide: true,
+      shell: false,
+      cwd: path.resolve(__dirname, '../../scraper'),
+      env: process.env
+    });
+
+    pyProcess.on('error', (err) => {
+      console.error('Auto-ingest subprocess error:', err);
+    });
+
+    pyProcess.unref();
+  } catch (err) {
+    console.error('Error auto-triggering initial ingestion:', err);
+  }
+}
 
 // GET /timeline - Format clusters for timeline visualization with source & date filtering
 router.get('/', async (req, res) => {
@@ -54,6 +86,11 @@ router.get('/', async (req, res) => {
     `;
 
     let rawClusters = await query(clusterSql, params);
+
+    // If database is empty, auto-trigger ingestion pipeline in background
+    if (rawClusters.length === 0 && !date && !source) {
+      triggerAutoIngest();
+    }
 
     // Fetch sources and sample articles for each cluster to enrich timeline data
     const timelineData = await Promise.all(
