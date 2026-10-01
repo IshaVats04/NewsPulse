@@ -39,9 +39,8 @@ def parse_date(entry, index_offset: int = 0) -> str:
             except Exception:
                 pass
 
-    # If parsed_dt is missing or older than 24 hours / different day, align it to TODAY with recent time offset
-    if not parsed_dt or (now - parsed_dt) > timedelta(hours=24) or parsed_dt.year != now.year or parsed_dt > now:
-        # Align within today (between 5 mins ago and 12 hours ago)
+    # If parsed_dt is missing or in the future, fallback to current time
+    if not parsed_dt or parsed_dt > now:
         minutes_ago = (index_offset * 12 + random.randint(5, 45)) % 720
         parsed_dt = now - timedelta(minutes=minutes_ago)
 
