@@ -29,8 +29,8 @@ router.get('/', async (req, res) => {
     }
 
     if (date) {
-      // Robust pattern matching for YYYY-MM-DD across space or 'T' ISO dates
-      whereClauses.push('(a.published_at LIKE ? OR a.published_at LIKE ?)');
+      // Robust pattern matching for YYYY-MM-DD across space or 'T' ISO dates (compatible with both SQLite & PostgreSQL)
+      whereClauses.push('(CAST(a.published_at AS TEXT) LIKE ? OR CAST(a.published_at AS TEXT) LIKE ?)');
       params.push(`${date}%`, `%${date}%`);
     } else {
       if (start_date) {
@@ -50,7 +50,7 @@ router.get('/', async (req, res) => {
     clusterSql += `
       GROUP BY c.id, c.label, c.keywords, c.created_at
       HAVING COUNT(a.id) > 0
-      ORDER BY start_time ASC
+      ORDER BY MIN(a.published_at) ASC
     `;
 
     let rawClusters = await query(clusterSql, params);
@@ -71,7 +71,7 @@ router.get('/', async (req, res) => {
         }
 
         if (date) {
-          articleSql += ' AND (published_at LIKE ? OR published_at LIKE ?)';
+          articleSql += ' AND (CAST(published_at AS TEXT) LIKE ? OR CAST(published_at AS TEXT) LIKE ?)';
           articleParams.push(`${date}%`, `%${date}%`);
         }
 

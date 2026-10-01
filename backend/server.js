@@ -15,10 +15,19 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-// API Routes
+// API Routes (Mounted under both direct paths and /api prefixes for full deployment compatibility)
 app.use('/clusters', clustersRouter);
+app.use('/api/clusters', clustersRouter);
+
 app.use('/timeline', timelineRouter);
+app.use('/api/timeline', timelineRouter);
+
 app.use('/ingest', ingestRouter);
+app.use('/api/ingest', ingestRouter);
+
+// Direct aliases
+app.get('/sources', (req, res) => res.redirect(307, '/ingest/sources'));
+app.get('/api/sources', (req, res) => res.redirect(307, '/ingest/sources'));
 
 // Healthcheck / Root overview
 app.get('/', (req, res) => {
@@ -40,7 +49,7 @@ app.get('/', (req, res) => {
 
 // 404 Handler
 app.use((req, res) => {
-  res.status(404).json({ success: false, error: 'Endpoint Not Found' });
+  res.status(404).json({ success: false, error: 'Endpoint Not Found', path: req.originalUrl });
 });
 
 // Global Error Handler

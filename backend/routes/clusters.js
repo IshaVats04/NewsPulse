@@ -72,7 +72,7 @@ router.get('/:id', async (req, res) => {
 
     // Filter by date if provided
     if (date) {
-      articleSql += ' AND (published_at LIKE ? OR published_at LIKE ?)';
+      articleSql += ' AND (CAST(published_at AS TEXT) LIKE ? OR CAST(published_at AS TEXT) LIKE ?)';
       articleParams.push(`${date}%`, `%${date}%`);
     }
 
