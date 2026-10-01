@@ -34,22 +34,37 @@ export interface IngestionJob {
   logs?: string[];
 }
 
-async function safeFetchJson(url: string, options: RequestInit = {}): Promise<any> {
-  try {
-    const res = await fetch(url, options);
-    const contentType = res.headers.get('content-type');
-    
-    if (!res.ok || !contentType || !contentType.includes('application/json')) {
-      const text = await res.text();
-      console.warn(`Non-JSON or non-OK response from ${url}:`, res.status, text.slice(0, 100));
-      return null;
+async function safeFetchJson(url: string, options: RequestInit = {}, retries = 2): Promise<any> {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch(url, options);
+      const contentType = res.headers.get('content-type');
+
+      // If Render free tier server is cold-booting (502/503/504), wait 3s and retry
+      if ((res.status === 502 || res.status === 503 || res.status === 504) && attempt < retries) {
+        console.warn(`Render server cold-booting (status ${res.status}). Retrying attempt ${attempt + 1}/${retries}...`);
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+        continue;
+      }
+      
+      if (!res.ok || !contentType || !contentType.includes('application/json')) {
+        const text = await res.text();
+        console.warn(`Non-JSON or non-OK response from ${url}:`, res.status, text.slice(0, 100));
+        return null;
+      }
+      
+      return await res.json();
+    } catch (err) {
+      if (attempt < retries) {
+        console.warn(`Fetch error for ${url}, retrying attempt ${attempt + 1}/${retries}...`, err);
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+      } else {
+        console.error(`Fetch error for ${url}:`, err);
+        return null;
+      }
     }
-    
-    return await res.json();
-  } catch (err) {
-    console.error(`Fetch error for ${url}:`, err);
-    return null;
   }
+  return null;
 }
 
 function normalizeCluster(c: any): Cluster {
