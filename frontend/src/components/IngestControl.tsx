@@ -3,10 +3,11 @@ import { RefreshCw, CheckCircle2, AlertCircle, Loader2, Terminal } from 'lucide-
 import { triggerIngestion, fetchIngestStatus, IngestionJob } from '../lib/api';
 
 interface IngestControlProps {
+  selectedDate?: string;
   onIngestComplete: () => void;
 }
 
-export const IngestControl: React.FC<IngestControlProps> = ({ onIngestComplete }) => {
+export const IngestControl: React.FC<IngestControlProps> = ({ selectedDate, onIngestComplete }) => {
   const [loading, setLoading] = useState(false);
   const [jobInfo, setJobInfo] = useState<IngestionJob | null>(null);
   const [showLogs, setShowLogs] = useState(false);
@@ -15,7 +16,7 @@ export const IngestControl: React.FC<IngestControlProps> = ({ onIngestComplete }
     setLoading(true);
     setJobInfo(null);
 
-    const triggerRes = await triggerIngestion();
+    const triggerRes = await triggerIngestion(selectedDate);
     if (!triggerRes) {
       alert('Failed to trigger ingestion pipeline. Ensure backend is running.');
       setLoading(false);
@@ -52,7 +53,9 @@ export const IngestControl: React.FC<IngestControlProps> = ({ onIngestComplete }
           <div>
             <h2 className="text-base font-bold text-white">Live Data Ingestion Pipeline</h2>
             <p className="text-xs text-gray-400 mt-0.5">
-              Scrape real-time RSS feeds from BBC, NPR, Al Jazeera & run TF-IDF topic clustering
+              {selectedDate
+                ? `Scrape real-time RSS feeds & index TF-IDF topic clusters specifically for ${selectedDate}`
+                : 'Scrape real-time RSS feeds from BBC, NPR, Al Jazeera & run TF-IDF topic clustering'}
             </p>
           </div>
         </div>
@@ -85,7 +88,7 @@ export const IngestControl: React.FC<IngestControlProps> = ({ onIngestComplete }
             ) : (
               <>
                 <RefreshCw className="w-4 h-4" />
-                Refresh Data
+                {selectedDate ? `Extract & Cluster (${selectedDate})` : 'Refresh Data'}
               </>
             )}
           </button>

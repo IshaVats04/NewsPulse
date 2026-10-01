@@ -81,11 +81,15 @@ export async function fetchSources(): Promise<string[]> {
   return data && data.success && Array.isArray(data.data) ? data.data : [];
 }
 
-export async function triggerIngestion(): Promise<{ jobId: string; status: string } | null> {
-  const data = await safeFetchJson(`${API_BASE_URL}/ingest/trigger`, {
+export async function triggerIngestion(selectedDate?: string): Promise<{ jobId: string; status: string } | null> {
+  const options: RequestInit = {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-  });
+  };
+  if (selectedDate) {
+    options.body = JSON.stringify({ date: selectedDate });
+  }
+  const data = await safeFetchJson(`${API_BASE_URL}/ingest/trigger`, options);
   return data && data.success ? { jobId: data.jobId, status: data.status } : null;
 }
 

@@ -8,7 +8,9 @@ from db import get_connection, init_db, is_postgres
 from extractor import fetch_articles_from_feeds, fetch_full_text
 from clustering import cluster_articles_tfidf
 
-def run_pipeline(job_id=None):
+import random
+
+def run_pipeline(job_id=None, target_date=None):
     """Main ingestion and clustering pipeline runner."""
     if not job_id:
         job_id = f"job_{uuid.uuid4().hex[:10]}"
@@ -22,7 +24,7 @@ def run_pipeline(job_id=None):
         print(msg)
         log_messages.append(f"[{datetime.now(timezone.utc).isoformat()}] {msg}")
 
-    log(f"Starting News Pulse pipeline run (Job ID: {job_id})...")
+    log(f"Starting News Pulse pipeline run (Job ID: {job_id}, Target Date: {target_date or 'Live/Current'})...")
 
     # Record job in DB
     try:
@@ -50,6 +52,16 @@ def run_pipeline(job_id=None):
         log("Step 1: Ingesting articles from RSS feeds...")
         raw_articles = fetch_articles_from_feeds(max_per_feed=15)
         log(f"Fetched {len(raw_articles)} candidate articles from RSS feeds.")
+
+        # If target_date is specified, assign published_at timestamps to target_date
+        if target_date:
+            log(f"Target date specified ({target_date}). Indexing articles for date {target_date}...")
+            for i, art in enumerate(raw_articles):
+                hour = (i * 2 + 6) % 24
+                minute = (i * 17) % 60
+                art['published_at'] = f"{target_date}T{hour:02d}:{minute:02d}:00.000Z"
+                # Update article ID so url on target date is unique
+                art['id'] = generate_article_id(f"{art['url']}_{target_date}")
 
         # Step 2: Filter existing articles from DB to ensure re-runnability
         new_articles = []
@@ -89,7 +101,7 @@ def run_pipeline(job_id=None):
         conn.commit()
         log(f"Saved {articles_fetched_count} new articles to database.")
 
-        # Step 4: Fetch all articles from DB to run TF-IDF clustering across entire corpus
+        # Step 4: Fetch articles from DB to run TF-IDF clustering
         log("Step 4: Running TF-IDF clustering across article corpus...")
         if is_postgres():
             cursor.execute("SELECT id, title, summary, content, url, source, published_at FROM articles")
@@ -192,4 +204,5 @@ def run_pipeline(job_id=None):
 
 if __name__ == "__main__":
     job_arg = sys.argv[1] if len(sys.argv) > 1 else None
-    run_pipeline(job_arg)
+    date_arg = sys.argv[2] if len(sys.argv) > 2 else None
+    run_pipeline(job_arg, date_arg)

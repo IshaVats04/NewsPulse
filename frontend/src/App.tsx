@@ -84,7 +84,7 @@ export default function App() {
       <main className="max-w-7xl mx-auto px-4 sm:px-8">
         
         {/* Python Ingestion Subprocess Trigger Control */}
-        <IngestControl onIngestComplete={loadData} />
+        <IngestControl selectedDate={selectedDate} onIngestComplete={loadData} />
 
         {/* Calendar Date Filter Picker */}
         <DateFilter

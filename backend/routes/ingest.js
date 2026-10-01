@@ -28,10 +28,17 @@ router.post('/trigger', async (req, res) => {
       );
     }
 
-    // Spawn Python subprocess non-blockingly
-    const pyProcess = spawn(pythonExecutable, [scraperScriptPath, jobId], {
+    const targetDate = req.body && req.body.date ? req.body.date : null;
+    const pyArgs = [scraperScriptPath, jobId];
+    if (targetDate) {
+      pyArgs.push(targetDate);
+    }
+
+    // Spawn Python subprocess non-blockingly with windowsHide: true to prevent CMD popups on Windows
+    const pyProcess = spawn(pythonExecutable, pyArgs, {
       detached: true,
       stdio: 'ignore',
+      windowsHide: true,
       cwd: path.resolve(__dirname, '../../scraper')
     });
 
@@ -41,6 +48,7 @@ router.post('/trigger', async (req, res) => {
       success: true,
       message: 'Ingestion pipeline triggered successfully',
       jobId,
+      targetDate: targetDate || 'Live/Current',
       status: 'running'
     });
   } catch (error) {
