@@ -3,7 +3,7 @@ services:
     name: news-pulse-api
     runtime: node
     plan: free
-    buildCommand: npm install
+    buildCommand: npm install && python3 -m pip install -r ../scraper/requirements.txt
     startCommand: node server.js
     envVars:
       - key: DATABASE_URL

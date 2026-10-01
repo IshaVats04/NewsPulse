@@ -9,6 +9,56 @@ const isPostgres = dbUrl.startsWith('postgres://') || dbUrl.startsWith('postgres
 
 let pgPool = null;
 let sqliteDb = null;
+let pgSchemaInitialized = false;
+
+async function initPgSchema(pool) {
+  if (pgSchemaInitialized) return;
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS clusters (
+        id VARCHAR(64) PRIMARY KEY,
+        label VARCHAR(255) NOT NULL,
+        keywords TEXT,
+        article_count INT DEFAULT 0,
+        first_article_time TIMESTAMP WITH TIME ZONE,
+        last_article_time TIMESTAMP WITH TIME ZONE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS articles (
+        id VARCHAR(64) PRIMARY KEY,
+        title TEXT NOT NULL,
+        summary TEXT,
+        content TEXT,
+        url TEXT UNIQUE NOT NULL,
+        source VARCHAR(100) NOT NULL,
+        published_at TIMESTAMP WITH TIME ZONE NOT NULL,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        cluster_id VARCHAR(64) REFERENCES clusters(id) ON DELETE SET NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS ingestion_jobs (
+        id VARCHAR(64) PRIMARY KEY,
+        status VARCHAR(30) NOT NULL,
+        started_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        completed_at TIMESTAMP WITH TIME ZONE,
+        articles_fetched INT DEFAULT 0,
+        clusters_created INT DEFAULT 0,
+        error_message TEXT,
+        logs TEXT
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_articles_published_at ON articles(published_at);
+      CREATE INDEX IF NOT EXISTS idx_articles_cluster_id ON articles(cluster_id);
+      CREATE INDEX IF NOT EXISTS idx_articles_source ON articles(source);
+    `);
+    pgSchemaInitialized = true;
+    console.log('PostgreSQL database schema initialized successfully');
+  } catch (err) {
+    console.error('Error initializing PostgreSQL schema:', err);
+  }
+}
 
 async function getDb() {
   if (isPostgres) {
@@ -21,6 +71,7 @@ async function getDb() {
         connectionString,
         ssl: { rejectUnauthorized: false }
       });
+      await initPgSchema(pgPool);
     }
     return { isPostgres: true, pool: pgPool };
   } else {

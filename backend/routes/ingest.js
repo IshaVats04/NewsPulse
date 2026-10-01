@@ -8,7 +8,7 @@ const { query, queryOne, execute, isPostgres } = require('../db');
 router.post('/trigger', async (req, res) => {
   try {
     const jobId = `job_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-    const pythonExecutable = process.env.PYTHON_PATH || 'python';
+    const pythonExecutable = process.env.PYTHON_PATH || (process.platform === 'win32' ? 'python' : 'python3');
     
     // Path to python scraper main.py
     const scraperScriptPath = path.resolve(__dirname, '../../scraper/main.py');
@@ -37,13 +37,14 @@ router.post('/trigger', async (req, res) => {
     console.log(`Target date: ${targetDate || 'Live/Current'}`);
     console.log(`Python args: ${pyArgs.join(' ')}`);
 
-    // Spawn Python subprocess non-blockingly with improved Windows handling
+    // Spawn Python subprocess non-blockingly with improved Windows and Linux handling
     const pyProcess = spawn(pythonExecutable, pyArgs, {
       detached: true,
       stdio: ['ignore', 'pipe', 'pipe'], // Capture stdout/stderr for better error handling
       windowsHide: true,
       shell: false, // Important: don't use shell to prevent CMD window
-      cwd: path.resolve(__dirname, '../../scraper')
+      cwd: path.resolve(__dirname, '../../scraper'),
+      env: process.env
     });
 
     // Log any errors from the subprocess

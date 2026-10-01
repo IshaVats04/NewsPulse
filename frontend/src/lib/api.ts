@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://news-pulse-api.onrender.com' : 'http://localhost:5000');
 
 export interface Article {
   id: string;
@@ -52,6 +52,44 @@ async function safeFetchJson(url: string, options: RequestInit = {}): Promise<an
   }
 }
 
+function normalizeCluster(c: any): Cluster {
+  const keywords = Array.isArray(c.keywords)
+    ? c.keywords
+    : (typeof c.keywords === 'string' ? c.keywords.split(',').map((k: string) => k.trim()).filter(Boolean) : []);
+  
+  const sources = Array.isArray(c.sources) ? c.sources : [];
+
+  const rawArticles = Array.isArray(c.sample_articles)
+    ? c.sample_articles
+    : (Array.isArray(c.articles) ? c.articles : []);
+
+  const sample_articles: Article[] = rawArticles.map((art: any) => ({
+    id: String(art.id || Math.random()),
+    title: art.title || 'Untitled',
+    summary: art.summary || '',
+    content: art.content || '',
+    url: art.url || '#',
+    source: art.source || 'Unknown',
+    published_at: art.published_at || art.publishedAt || art.start || new Date().toISOString()
+  }));
+
+  const count = Number(c.article_count ?? c.articleCount ?? sample_articles.length ?? 1);
+  const intensity = typeof c.intensity === 'number' ? c.intensity : Math.min(10, Math.max(1, count * 1.5 + (sources.length > 1 ? 2 : 0)));
+
+  return {
+    id: String(c.id),
+    label: c.label || 'Topic Cluster',
+    keywords,
+    start_time: c.start_time || c.start || new Date().toISOString(),
+    end_time: c.end_time || c.end || c.start_time || c.start || new Date().toISOString(),
+    article_count: count,
+    intensity,
+    sources,
+    sample_articles,
+    articles: sample_articles
+  };
+}
+
 export async function fetchTimeline(selectedSources: string[] = [], selectedDate: string = ''): Promise<Cluster[]> {
   const url = new URL(`${API_BASE_URL}/timeline`);
   if (selectedSources.length > 0) {
@@ -61,7 +99,18 @@ export async function fetchTimeline(selectedSources: string[] = [], selectedDate
     url.searchParams.append('date', selectedDate);
   }
   const data = await safeFetchJson(url.toString());
-  return data && data.success && Array.isArray(data.data) ? data.data : [];
+  if (!data) return [];
+  
+  let rawList: any[] = [];
+  if (Array.isArray(data)) {
+    rawList = data;
+  } else if (data.success && Array.isArray(data.data)) {
+    rawList = data.data;
+  } else if (Array.isArray(data.clusters)) {
+    rawList = data.clusters;
+  }
+
+  return rawList.map(normalizeCluster);
 }
 
 export async function fetchClusterDetail(clusterId: string, selectedSources: string[] = [], selectedDate: string = ''): Promise<Cluster | null> {
@@ -73,12 +122,17 @@ export async function fetchClusterDetail(clusterId: string, selectedSources: str
     url.searchParams.append('date', selectedDate);
   }
   const data = await safeFetchJson(url.toString());
-  return data && data.success ? data.data : null;
+  if (!data) return null;
+  const rawObj = data.success ? data.data : (data.id ? data : null);
+  return rawObj ? normalizeCluster(rawObj) : null;
 }
 
 export async function fetchSources(): Promise<string[]> {
   const data = await safeFetchJson(`${API_BASE_URL}/ingest/sources`);
-  return data && data.success && Array.isArray(data.data) ? data.data : [];
+  if (!data) return ['BBC News', 'NPR News', 'Al Jazeera', 'The Guardian', 'CNN Top Stories'];
+  if (data.success && Array.isArray(data.data)) return data.data;
+  if (Array.isArray(data)) return data;
+  return ['BBC News', 'NPR News', 'Al Jazeera', 'The Guardian', 'CNN Top Stories'];
 }
 
 export async function triggerIngestion(selectedDate?: string): Promise<{ jobId: string; status: string } | null> {
@@ -90,10 +144,29 @@ export async function triggerIngestion(selectedDate?: string): Promise<{ jobId: 
     options.body = JSON.stringify({ date: selectedDate });
   }
   const data = await safeFetchJson(`${API_BASE_URL}/ingest/trigger`, options);
-  return data && data.success ? { jobId: data.jobId, status: data.status } : null;
+  if (!data) return null;
+  if (data.success && data.jobId) {
+    return { jobId: data.jobId, status: data.status || 'running' };
+  }
+  if (data.jobId || data.id) {
+    return { jobId: data.jobId || data.id, status: data.status || 'running' };
+  }
+  return null;
 }
 
 export async function fetchIngestStatus(jobId: string): Promise<IngestionJob | null> {
   const data = await safeFetchJson(`${API_BASE_URL}/ingest/status/${jobId}`);
-  return data && data.success ? data.data : null;
+  if (!data) return null;
+  const rawObj = data.success ? data.data : data;
+  if (!rawObj) return null;
+  return {
+    id: rawObj.id || jobId,
+    status: rawObj.status || 'completed',
+    started_at: rawObj.started_at || new Date().toISOString(),
+    completed_at: rawObj.completed_at,
+    articles_fetched: rawObj.articles_fetched || 0,
+    clusters_created: rawObj.clusters_created || 0,
+    error_message: rawObj.error_message,
+    logs: Array.isArray(rawObj.logs) ? rawObj.logs : (typeof rawObj.logs === 'string' ? rawObj.logs.split('\n') : [])
+  };
 }
