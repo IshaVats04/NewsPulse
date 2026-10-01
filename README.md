@@ -11,7 +11,7 @@ News Pulse is a full-stack, end-to-end system that pulls live articles from mult
 > Evaluators and reviewers can explore the full, live interactive experience of News Pulse—including real-time topic timeline navigation, source filter chips, interactive cluster drilldowns, and on-demand RSS data ingestion—directly using the live deployment link:
 > 
 > * 🔗 **Live Interactive Frontend (Vercel):** [https://news-pulse-frontend.vercel.app](https://news-pulse-frontend.vercel.app)
-> * ⚡ **Live Backend REST API (Render):** [https://news-pulse-api.onrender.com](https://news-pulse-api.onrender.com)
+> * ⚡ **Live Backend REST API (Render):** [https://news-pulse-api-bhi6.onrender.com](https://news-pulse-api-bhi6.onrender.com)
 
 ---
 
@@ -149,7 +149,7 @@ npm run dev
 | `DATABASE_URL` | PostgreSQL or SQLite connection string | `sqlite:///../scraper/news.db` | `postgresql://user:pass@ep-xyz.supabase.co:5432/postgres` |
 | `PORT` | Express server port | `5000` | `10000` |
 | `PYTHON_PATH` | Path to python executable for subprocess | `../scraper/venv/Scripts/python.exe` | `python` |
-| `VITE_API_URL` | Express API endpoint for React SPA | `http://localhost:5000` | `https://news-pulse-api.onrender.com` |
+| `VITE_API_URL` | Express API endpoint for React SPA | `http://localhost:5000` | `https://news-pulse-api-bhi6.onrender.com` |
 
 ---
 
@@ -170,7 +170,7 @@ npm run dev
 ### 3. Frontend (Vercel / Netlify)
 1. Import repository into [Vercel](https://vercel.com) or [Netlify](https://netlify.com).
 2. Set **Root Directory** to `frontend`.
-3. Add Environment Variable: `VITE_API_URL` = `https://<your-render-app>.onrender.com`.
+3. Add Environment Variable: `VITE_API_URL` = `https://news-pulse-api-bhi6.onrender.com`.
 4. Deploy! Evaluators can open the live URL and interact with cold-start ready News Pulse.
 
 ---
