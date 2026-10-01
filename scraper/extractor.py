@@ -53,10 +53,10 @@ def clean_html(raw_html: str) -> str:
     soup = BeautifulSoup(raw_html, "html.parser")
     return soup.get_text(separator=" ", strip=True)
 
-def fetch_full_text(url: str, timeout: int = 8) -> str:
+def fetch_full_text(url: str, timeout: int = 3) -> str:
     """Extract full body text from article URL using Trafilatura with BeautifulSoup fallback."""
     try:
-        downloaded = trafilatura.fetch_url(url)
+        downloaded = trafilatura.fetch_url(url, timeout=timeout)
         if downloaded:
             extracted = trafilatura.extract(downloaded, include_comments=False, include_tables=False)
             if extracted and len(extracted.strip()) > 50:

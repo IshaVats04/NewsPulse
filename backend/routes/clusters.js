@@ -70,20 +70,15 @@ router.get('/:id', async (req, res) => {
       articleParams.push(...sourcesList);
     }
 
+    // Filter by date if provided
+    if (date) {
+      articleSql += ' AND (published_at LIKE ? OR published_at LIKE ?)';
+      articleParams.push(`${date}%`, `%${date}%`);
+    }
+
     articleSql += ' ORDER BY published_at ASC';
 
     let articles = await query(articleSql, articleParams);
-
-    if (date) {
-      articles = articles.map((art, idx) => {
-        const hour = String((idx * 2 + 8) % 24).padStart(2, '0');
-        const min = String((idx * 15) % 60).padStart(2, '0');
-        return {
-          ...art,
-          published_at: art.published_at && art.published_at.startsWith(date) ? art.published_at : `${date}T${hour}:${min}:00.000Z`
-        };
-      });
-    }
 
     const keywordsArray = cluster.keywords
       ? (typeof cluster.keywords === 'string' ? cluster.keywords.split(',').map((k) => k.trim()).filter(Boolean) : cluster.keywords)

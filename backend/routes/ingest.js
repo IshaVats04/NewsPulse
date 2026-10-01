@@ -34,12 +34,21 @@ router.post('/trigger', async (req, res) => {
       pyArgs.push(targetDate);
     }
 
-    // Spawn Python subprocess non-blockingly with windowsHide: true to prevent CMD popups on Windows
+    console.log(`Target date: ${targetDate || 'Live/Current'}`);
+    console.log(`Python args: ${pyArgs.join(' ')}`);
+
+    // Spawn Python subprocess non-blockingly with improved Windows handling
     const pyProcess = spawn(pythonExecutable, pyArgs, {
       detached: true,
-      stdio: 'ignore',
+      stdio: ['ignore', 'pipe', 'pipe'], // Capture stdout/stderr for better error handling
       windowsHide: true,
+      shell: false, // Important: don't use shell to prevent CMD window
       cwd: path.resolve(__dirname, '../../scraper')
+    });
+
+    // Log any errors from the subprocess
+    pyProcess.on('error', (err) => {
+      console.error(`Python subprocess error for job ${jobId}:`, err);
     });
 
     pyProcess.unref();
@@ -94,6 +103,26 @@ router.get('/sources', async (req, res) => {
     res.json({ success: true, data: sources });
   } catch (error) {
     console.error('Error fetching sources:', error);
+    res.status(500).json({ success: false, error: 'Internal Server Error', message: error.message });
+  }
+});
+
+// GET /ingest/debug/:date - Debug endpoint to check articles for a specific date
+router.get('/debug/:date', async (req, res) => {
+  try {
+    const { date } = req.params;
+    const rows = await query(
+      'SELECT id, title, source, published_at, cluster_id FROM articles WHERE published_at LIKE ? ORDER BY published_at ASC LIMIT 20',
+      [`${date}%`]
+    );
+    res.json({
+      success: true,
+      date,
+      count: rows.length,
+      data: rows
+    });
+  } catch (error) {
+    console.error('Error debugging date:', error);
     res.status(500).json({ success: false, error: 'Internal Server Error', message: error.message });
   }
 });

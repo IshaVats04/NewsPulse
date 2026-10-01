@@ -34,6 +34,9 @@ def cluster_articles_tfidf(articles, similarity_threshold=0.22):
         content = art.get('content', '')[:300] if art.get('content') else ''
         # Weight title heavier for topic alignment
         combined_text = f"{title} {title} {summary} {content}".strip()
+        # Ensure we have at least some text
+        if not combined_text:
+            combined_text = title
         texts.append(combined_text)
 
     # 2. Build TF-IDF matrix

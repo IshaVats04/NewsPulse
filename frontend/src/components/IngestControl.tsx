@@ -16,6 +16,7 @@ export const IngestControl: React.FC<IngestControlProps> = ({ selectedDate, onIn
     setLoading(true);
     setJobInfo(null);
 
+    console.log('Triggering ingestion with date:', selectedDate);
     const triggerRes = await triggerIngestion(selectedDate);
     if (!triggerRes) {
       alert('Failed to trigger ingestion pipeline. Ensure backend is running.');
@@ -54,9 +55,14 @@ export const IngestControl: React.FC<IngestControlProps> = ({ selectedDate, onIn
             <h2 className="text-base font-bold text-white">Live Data Ingestion Pipeline</h2>
             <p className="text-xs text-gray-400 mt-0.5">
               {selectedDate
-                ? `Scrape real-time RSS feeds & index TF-IDF topic clusters specifically for ${selectedDate}`
+                ? `Will extract and assign current RSS articles to ${selectedDate} for historical timeline view`
                 : 'Scrape real-time RSS feeds from BBC, NPR, Al Jazeera & run TF-IDF topic clustering'}
             </p>
+            {selectedDate && (
+              <p className="text-xs text-teal-400 mt-1">
+                💡 Articles will be re-clustered with this date's timestamp
+              </p>
+            )}
           </div>
         </div>
 
@@ -88,7 +94,7 @@ export const IngestControl: React.FC<IngestControlProps> = ({ selectedDate, onIn
             ) : (
               <>
                 <RefreshCw className="w-4 h-4" />
-                {selectedDate ? `Extract & Cluster (${selectedDate})` : 'Refresh Data'}
+                {selectedDate ? `Re-extract & Cluster (${selectedDate})` : 'Refresh Data'}
               </>
             )}
           </button>

@@ -35,16 +35,16 @@ export default function App() {
     loadData();
   }, [loadData]);
 
-  // Live auto-refresh polling (every 10s)
+  // Live auto-refresh polling (every 10s) - only when no date is selected
   useEffect(() => {
-    if (!isAutoRefreshing) return;
+    if (!isAutoRefreshing || selectedDate) return;
 
     const interval = setInterval(() => {
       loadData();
     }, 10000);
 
     return () => clearInterval(interval);
-  }, [isAutoRefreshing, loadData]);
+  }, [isAutoRefreshing, selectedDate, loadData]);
 
   // Source filter toggles
   const handleToggleSource = (sourceName: string) => {

@@ -15,6 +15,21 @@ export const DateFilter: React.FC<DateFilterProps> = ({
   // Format today's YYYY-MM-DD
   const todayStr = new Date().toISOString().split('T')[0];
 
+  const handleDateChange = (date: string) => {
+    // Ensure date is in YYYY-MM-DD format (HTML date input should return this)
+    // But handle DD-MM-YYYY if browser returns it differently
+    let formattedDate = date;
+    if (date.includes('-') && date.split('-')[0].length === 2) {
+      // DD-MM-YYYY format, convert to YYYY-MM-DD
+      const parts = date.split('-');
+      if (parts.length === 3) {
+        formattedDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+      }
+    }
+    // Just update the UI - don't auto-trigger ingestion
+    onDateChange(formattedDate);
+  };
+
   return (
     <div className="glass-panel rounded-2xl p-4 sm:p-5 mb-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
@@ -40,14 +55,14 @@ export const DateFilter: React.FC<DateFilterProps> = ({
             type="date"
             value={selectedDate}
             max={todayStr}
-            onChange={(e) => onDateChange(e.target.value)}
+            onChange={(e) => handleDateChange(e.target.value)}
             className="bg-gray-900/90 text-white text-xs font-semibold px-4 py-2 rounded-xl border border-gray-700/80 focus:border-teal-500 focus:outline-none transition-all shadow-inner cursor-pointer"
           />
         </div>
 
         {/* Quick Date Presets */}
         <button
-          onClick={() => onDateChange(todayStr)}
+          onClick={() => handleDateChange(todayStr)}
           className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all border ${
             selectedDate === todayStr
               ? 'bg-teal-500/20 text-teal-300 border-teal-500/40 shadow-sm'
@@ -72,7 +87,7 @@ export const DateFilter: React.FC<DateFilterProps> = ({
 
         {selectedDate && (
           <span className="text-xs text-teal-300 font-medium bg-teal-500/10 px-3 py-1.5 rounded-xl border border-teal-500/20">
-            Showing articles for <strong>{selectedDate}</strong>
+            Showing articles for <strong>{selectedDate}</strong> - Use "Refresh Data" below to ingest
           </span>
         )}
       </div>

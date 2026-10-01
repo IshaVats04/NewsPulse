@@ -32,7 +32,8 @@ app.get('/', (req, res) => {
       timeline: 'GET /timeline',
       trigger_ingest: 'POST /ingest/trigger',
       job_status: 'GET /ingest/status/:jobId',
-      sources: 'GET /ingest/sources'
+      sources: 'GET /ingest/sources',
+      debug_date: 'GET /ingest/debug/:date'
     }
   });
 });
