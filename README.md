@@ -4,6 +4,17 @@ News Pulse is a full-stack, end-to-end system that pulls live articles from mult
 
 ---
 
+## 🌐 Live Deployed Application
+
+> [!IMPORTANT]
+> **Full Interactive Project Experience:**  
+> Evaluators and reviewers can explore the full, live interactive experience of News Pulse—including real-time topic timeline navigation, source filter chips, interactive cluster drilldowns, and on-demand RSS data ingestion—directly using the live deployment link:
+> 
+> * 🔗 **Live Interactive Frontend (Vercel):** [https://news-pulse-frontend.vercel.app](https://news-pulse-frontend.vercel.app)
+> * ⚡ **Live Backend REST API (Render):** [https://news-pulse-api.onrender.com](https://news-pulse-api.onrender.com)
+
+---
+
 ## 🏗️ Deployment & Architecture Overview
 
 The system is designed to run seamlessly both locally (with zero-config SQLite) and live on production cloud platforms (using hosted PostgreSQL).
